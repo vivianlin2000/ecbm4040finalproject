@@ -5,6 +5,7 @@ import numpy as np
 from tensorflow.keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from data_utils import *
 import matplotlib.pyplot as plt
+from time import time as T
 
 
 def set_seed(seed=31415):
@@ -54,21 +55,27 @@ def train_model(model, configs):
     
     print_model_trainable_params(model)
     print('\nBeginning Training:\n')
-
+    
+    start_time = T()
     history = model.fit(x=train_generator, max_queue_size=10, workers=16, batch_size=batch_size, epochs=num_epochs,
                         validation_data=validation_generator, callbacks=callbacks)
     
+    end_time = T()
+    elapsed_time = end_time - start_time
     
-
     # Call the function with the training history
     plot_and_save_history(history,filename=f"{saved_models_dir}/PLOTS_{filename}" )
     
     # Call the function with the training history
     save_history_to_csv(history,filename=f"{saved_models_dir}/history_{filename}.csv")
     
-    print(f"\nTraining Finished. \nYou can find Saved model (best validation score), TensorBoard logs, Loss curves and Accuracy curves, csv of History,  at {saved_models_dir}")
+    print(f"\nTraining Finished. Time taken : {elapsed_time} seconds")
+    with open(f"{saved_models_dir}/time_taken.txt", 'w') as file:
+        file.write(f'Time taken : {elapsed_time} seconds \n')
+          
+    print(f"\nYou can find Saved model (best validation score), TensorBoard logs, Loss curves and Accuracy curves, csv of History,  at {saved_models_dir}")
     
-    print("Now loading Best model and Testing..")
+    print("\nNow loading Best model and Testing..")
     test(saved_models_dir, filename, test_generator)
 
 
@@ -135,7 +142,7 @@ def test(saved_models_dir, filename, test_generator):
 
     test_results = model.evaluate(test_generator)
 
-    print("Test Loss:", test_results[0])
+    print("\nTest Loss:", test_results[0])
     print("Test Accuracy:", test_results[1])
 
     with open(f"{saved_models_dir}/test_accuracy.txt", 'w') as file:

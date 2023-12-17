@@ -73,12 +73,14 @@ def get_resolution(pretrained, dataset):
 def get_num_classes(dataset):
     if dataset.lower() == "cifar10":
         return 10
-    if dataset.lower() == "flowers":
+    elif dataset.lower() == "flowers":
         return 102
-    if dataset.lower() == "pets":
+    elif dataset.lower() == "pets":
         return 37
-    if dataset.lower() == "tiny-imagenet":
+    elif dataset.lower() == "tiny-imagenet":
         return 200
+    else:
+        print("UNSUPPORTED DATASET. PLEASE CHECK NAME OF DATASET IN CONFIGS YOU PROVIDE.")
 
 
 # this function is only for retrieving one of the 4 pretrained models from the git repo or create a brand new untrained model

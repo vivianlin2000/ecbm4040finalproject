@@ -4,15 +4,15 @@ from train import train_model
 
 User_Configs = {
     # Choose pretrained as None, "mlp_mixer_b16_imagenet", "mlp_mixer_l16_imagenet", "mlp_mixer_b16_imagenet21k", or "mlp_mixer_l16_imagenet21k"
-    'pretrained': None,
+    'pretrained': "mlp_mixer_l16_imagenet",
     
     # choose model name as 
     # (a). One of "b16" / "l16" corresponding to pretrained model, or 
     # (b). One of b16/l16/s16/b32/l32/s32 if training from Scratch.
-    'model_name': 'l32',
+    'model_name': 'l16',
     
     # dataset_name should be one of "cifar10", "pets", or tiny-imagenet"
-    'dataset_name': 'tiny-imagenet',
+    'dataset_name': 'pets',
     
     # You can choose to not have activation in the first layer (linear projection), or else relu works well.
     'initial_activation': 'relu',
@@ -21,13 +21,13 @@ User_Configs = {
     'local_model_path': None,
     
     # Set Learning Rate. 0.001-0.01 works best. Set low if finetuning.
-    'learning_rate': 0.001,
+    'learning_rate': 0.01,
     
     # (Relevant if Pretrained) Select only Top layer to be unfrozen by saying "top", or None for all unfrozen. 
-    'trainable_layers': 'top',
+    'trainable_layers': None,
     
     # Number of epochs to run training. About 10-20 epochs take roughly 1-3 hours on most models.
-    'num_epochs': 30,
+    'num_epochs': 20,
     
     # Optimizer to use. select "Adam" or "SGD", or any other.
     'optimizer_name': 'Adam',
@@ -48,14 +48,20 @@ User_Configs = {
 }
 
 
-
+# We get Default configs from generate_model_configs. 
 configs = generate_model_configs()
+# We update the dictionary with user configs
 configs.update(User_Configs)
+
 print("Here are the Final configurations : \n")
 for key, value in configs.items():
     print(key, "=", value)
     
-    
+# Getting the model object out if someone needs to inspect the model
 model = get_model(configs)
 
-train_model(model, configs)
+# train_model trains the model using the configurations from creating datasets to plotting curves and saving the best models
+best_model, saved_dir, test_gen = train_model(model, configs)
+
+# test gets the test generator and the best model and gets the test results and plots confusion matrix and ROC Curves if you set plots=True
+test(best_model, saved_dir, test_gen, plots=True)

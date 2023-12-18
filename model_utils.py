@@ -10,6 +10,16 @@ from tensorflow.keras.models import load_model
 
 
 def get_model_architecture(model_name="b16"):
+    """
+    Retrieve the architecture configurations for a specified model. Architecture is a replica of the paper specified, and implementation of the dictionary is credited to https://github.com/leondgarse/keras_mlp/ . We needed to have the exact nomenclature as the model present in this repo so that we can load pretrained weights to be able to successfully fine-tune on any datasets.
+
+    Args:
+        model_name (str): Name of the model architecture.
+
+    Returns:
+        dict: Dictionary containing architecture configurations.
+    """
+    
     MODEL_CONFIGS = {
         "s32": {
             "num_blocks": 8,
@@ -61,6 +71,16 @@ def get_model_architecture(model_name="b16"):
 
 
 def get_resolution(pretrained, dataset):
+    """
+    Get the image resolution based on the dataset and whether the model is pretrained.
+
+    Args:
+        pretrained (str): Indicates whether the model is pretrained. Can have the string indicating pretrained model or None.
+        dataset (str): Name of the dataset.
+
+    Returns:
+        tuple: Tuple representing image resolution (height, width, channels).
+    """
     if pretrained:
         return (224, 224, 3)
     else:
@@ -71,6 +91,15 @@ def get_resolution(pretrained, dataset):
 
 
 def get_num_classes(dataset):
+    """
+    Get the number of classes for a given dataset.
+
+    Args:
+        dataset (str): Name of the dataset.
+
+    Returns:
+        int: Number of classes for the specified dataset.
+    """
     if dataset.lower() == "cifar10":
         return 10
     elif dataset.lower() == "flowers":
@@ -80,12 +109,23 @@ def get_num_classes(dataset):
     elif dataset.lower() == "tiny-imagenet":
         return 200
     else:
-        print("UNSUPPORTED DATASET. PLEASE CHECK NAME OF DATASET IN CONFIGS YOU PROVIDE.")
+        raise ValueError(f"Unsupported dataset: {dataset}. Please check the name of the dataset in the provided configs.")
 
 
 # this function is only for retrieving one of the 4 pretrained models from the git repo or create a brand new untrained model
 def get_model(configs):
+    """
+    Retrieve a model based on the provided configurations. Uses MLP Mixer class to retrieve model
+
+    Args:
+        configs (dict): Dictionary containing model configurations.
+
+    Returns:
+        model (tf.keras.Model): Keras model instance.
+    """
     local_model = configs["local_model_path"]
+    
+    # If we have not specified a local model to load, go into the MLP Mixer class to obtain it
     if not local_model:
         num_blocks, patch_size, stem_width, tokens_mlp_dim, channels_mlp_dim = get_model_architecture(
             configs["model_name"]).values()
@@ -110,6 +150,7 @@ def get_model(configs):
             unfreeze=configs["trainable_layers"]
         )
     else:
+        # Just load the whole model (not just weights)
         model = load_model(f"{local_model}.h5")
         print(">>>> Loaded Locally Saved Model Successfully !")
     
@@ -133,7 +174,12 @@ def generate_model_configs(pretrained=None,
                            drop_connect_rate=0,
                            train_augmentation = True
                            ):
-    
+    """
+    Generates a default dictionary of model configurations, taken from the default parameters of the function
+
+    Returns:
+        dict: A default Dictionary containing model configurations. 
+    """
     
     return {"pretrained": pretrained,
             "model_name":model_name,
@@ -154,18 +200,40 @@ def generate_model_configs(pretrained=None,
             }
 
 def get_optimizer(optimizer_name, cosine_decay, learning_rate, num_epochs, momentum, decay):
+    """
+    Get the optimizer based on specified configurations.
+
+    Args:
+        optimizer_name (str): Name of the optimizer.
+        cosine_decay (bool): Indicates whether to use cosine decay.
+        learning_rate (float): Initial learning rate.
+        num_epochs (int): Number of training epochs.
+        momentum (float): Momentum for SGD.
+        decay (float): Decay for SGD.
+
+    Returns:
+        optimizer (tf.keras.optimizers.Optimizer) : Optimizer instance.
+    """
     optimizer = None
+    
+    # Check if the specified optimizer is Stochastic Gradient Descent (SGD)
     if optimizer_name == "SGD":
+        # If cosine decay is enabled, use CosineDecay schedule for learning rate
         if cosine_decay:
             schedule = CosineDecay(learning_rate, num_epochs)
             optimizer = SGD(learning_rate=schedule, momentum=momentum, decay=decay)
         else:
+            # If cosine decay is not enabled, use the learning rate with just momentum and decay
             optimizer = SGD(learning_rate=learning_rate, momentum=momentum, decay=decay)
 
+    # Check if the specified optimizer is Adam
     elif optimizer_name == "Adam":
+        # Use Adam optimizer with the specified learning rate
         optimizer = Adam(learning_rate=learning_rate)
+    
+    # If the optimizer is neither SGD nor Adam, use the specified optimizer as is (if it is present in keras, otherwise would throw an error later automatically)
     else:
         optimizer = optimizer_name
-        print("Taking {optimizer_name} as the optimizer")
+        print(f"Taking {optimizer_name} as the optimizer")
 
     return optimizer
